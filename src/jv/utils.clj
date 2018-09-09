@@ -2,12 +2,11 @@
 (ns jv.utils
   (:require [clojure.string :refer [lower-case split replace]
              :rename {replace str-replace}]
-            [clojure.edn :as edn]
             [clojure.xml :as xml]
             [clojure.pprint :as pp]
             [clojure.java.io :as io])
-  (:import (java.io FileReader InputStreamReader PushbackReader
-                    File ByteArrayInputStream)))
+  (:import (java.io ByteArrayInputStream)))
+
 
 ;; repl debugging utils
 
@@ -53,6 +52,38 @@
 (defn contains-key? [coll key]
   (contains? coll key))
 
+(defn divide-at
+  "Uses the predicate to divide the collection into two parts, in the
+   following way:
+
+   - if the first element does not satisfy the predicate, returns an
+     empty sequence as the first part, and the given collection as the
+     second part
+   - if the first element does satisfy the predicate, takes it; then,
+     continues taking elements as long as they do NOT satisfy the
+     predicate.  Returns those up to (but not including) the second one
+     to satisfy the predicate as the first part, and the remainder of
+     the collection, from the second match through the end of the
+     collection, as the second part.
+
+     The idea is that the predicate detects a 'beginning'.  We expect that
+     the first element will match, and we want to continue until we see
+     another beginning.  We assume that the end of the current part is
+     whatever immediately precedes the beginning of the next part.
+
+     This function is not lazy, and will always return a realized value
+     for the first part.  (If given a lazy sequence, though, it may
+     well return one as the second part.)"
+  [pred coll]
+  (if (pred (first coll))
+    (loop [taken (list (first coll))
+           [next-elt & untested :as dropped] (rest coll)]
+      (if (or (empty? dropped) (pred next-elt))
+        [taken dropped]
+        (recur (concat taken (list next-elt))
+               untested)))
+    [() coll]))
+
 (defn string-to-int [s]
   (try
     (Integer/parseInt s)
@@ -92,46 +123,6 @@
 
 (defn read-file-lines [fname]
   (with-open [rdr (io/reader fname)] (doall (line-seq rdr))))
-
-(defn- read-edn-from-pushback-reader
-  [edn-reader]
-  (with-open [r edn-reader]
-    (try
-      (let [data (edn/read {:eof ::eof} r)]
-        (if (= ::eof data)
-          {:data nil
-           :error "Encountered end of file"}
-          {:data data
-           :error nil}))
-      (catch java.lang.Throwable th
-        {:data nil 
-         :error (.getMessage th)}))))
-              
-(defn read-edn-resource-file
-  ([resource-file-specification default-value]
-   (let [edn-resource (io/resource resource-file-specification)
-         edn-reader (if edn-resource
-                      (PushbackReader. (InputStreamReader. (.openStream edn-resource)))
-                      (let [edn-file (File. resource-file-specification)]
-                        (if (.exists edn-file)
-                          (PushbackReader. (FileReader. edn-file))
-                          (println "EDN config file not found at"
-                                   resource-file-specification))))
-         edn-data (read-edn-from-pushback-reader edn-reader)]
-     (or (:data edn-data)
-         (do
-           (println "Error while reading EDN from"
-                    resource-file-specification
-                    (if edn-resource
-                      (str " (" edn-resource ")")
-                      "")
-                    ":"
-                    (:error edn-data))
-           default-value))))
-  ([resource-file-specification]
-   ;; most EDN data are maps; make that the default
-   (read-edn-resource-file resource-file-specification {})))
-
 
 
 ;; string utils

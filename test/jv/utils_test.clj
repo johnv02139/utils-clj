@@ -1,6 +1,34 @@
 (ns jv.utils-test
   (:require [clojure.test :refer [deftest testing is]]
-            [jv.utils :refer [char-range flatten-singleton literalize-for-regex]]))
+            [jv.utils :refer [char-range flatten-singleton literalize-for-regex
+                              divide-at]]))
+
+(deftest divide-at-test
+  (testing "divide-at"
+    (is (= [() [:a]]
+           (divide-at
+            (constantly false)
+            [:a])))
+    (is (= [() [:a :b :c :d]]
+           (divide-at
+            (constantly false)
+            [:a :b :c :d])))
+    (is (= [[:a :b :c :d] [:a :b :c :d]]
+           (divide-at
+            #{:a}
+            [:a :b :c :d :a :b :c :d])))
+    (is (= [[:a :b :c] [:a]]
+           (divide-at
+            #{:a}
+            [:a :b :c :a])))
+    ;; divide-at is not lazy, itself; it always immediately searches for
+    ;; the point at which to divide the collection.  However, it can still
+    ;; be given a lazy (even infinite) sequence, and will return a lazy
+    ;; sequence as the second value.
+    (is (= '(0 1)
+           (let [result (divide-at even? (range))]
+             (first result))))
+    ))
 
 (deftest flatten-singleton-test
   (testing "flatten-singleton"

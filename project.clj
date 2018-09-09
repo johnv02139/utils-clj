@@ -1,4 +1,4 @@
-(defproject utils-clj "0.0.1-SNAPSHOT"
+(defproject utils-clj "0.0.2-SNAPSHOT"
   :description "Convenience functions for Clojure."
   :url "https://github.com/johnv02139/utils-clj"
   :license {:name "MIT License"
