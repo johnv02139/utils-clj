@@ -1,5 +1,5 @@
 
-(ns jv.utils
+(ns jv.utils.edn
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io])
   (:import (java.io FileReader InputStreamReader PushbackReader File)))
