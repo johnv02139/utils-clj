@@ -23,6 +23,12 @@
 
 ;; debugging from code
 
+(def debug-level (atom 1))
+
+(defn debug [& rest]
+  (when (> @debug-level 1)
+    (apply printf rest)))
+
 (defn fail [& rest]
   (apply printf rest)
   false)
